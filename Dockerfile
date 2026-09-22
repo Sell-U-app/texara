@@ -3,11 +3,15 @@
 # is used as-is instead of a php-fpm + nginx split.
 FROM php:8.3-apache
 
-# The base image ships two MPMs enabled - prefork, which mod_php requires, and
-# event - and Apache refuses to start with more than one ("More than one MPM
-# loaded"). Pin it to prefork explicitly instead of trusting the base image.
-RUN a2dismod mpm_event mpm_worker 2>/dev/null; \
-    a2enmod mpm_prefork rewrite expires deflate headers
+# php:8.3-apache ships mpm_event enabled, but mod_php only runs under
+# mpm_prefork - and Apache refuses to start with two MPMs loaded at once.
+# a2dismod will not drop the only MPM in place, so asking it to swap them just
+# leaves both enabled; the symlinks are managed directly instead. Nothing here
+# swallows stderr: a failure has to show up in the build log.
+RUN rm -f /etc/apache2/mods-enabled/mpm_*.load /etc/apache2/mods-enabled/mpm_*.conf \
+ && ln -s ../mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mpm_prefork.load \
+ && ln -s ../mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf \
+ && a2enmod rewrite expires deflate headers
 
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
@@ -26,16 +30,10 @@ RUN printf '%s\n' \
  && a2enconf texara
 
 # Fail the BUILD on a broken config instead of crash-looping at boot.
-RUN test "$(ls -1 /etc/apache2/mods-enabled/mpm_*.load | wc -l)" = "1" \
+RUN echo "MPMs enabled:" && ls -1 /etc/apache2/mods-enabled/mpm_*.load \
+ && test "$(ls -1 /etc/apache2/mods-enabled/mpm_*.load | wc -l)" = "1" \
  && apache2ctl -t \
- && apache2ctl -M | grep -q 'rewrite_module'
-
-# --- diagnóstico temporal: de dónde sale el segundo MPM ---
-RUN echo "=== BUILD: apache2 -v ==="        && apache2 -v; \
-    echo "=== BUILD: compilados (-l) ==="   && apache2 -l; \
-    echo "=== BUILD: mods-enabled ==="      && ls -1 /etc/apache2/mods-enabled/; \
-    echo "=== BUILD: LoadModule mpm ==="    && grep -rn "LoadModule.*mpm" /etc/apache2/ || true; \
-    echo "=== BUILD: apache2ctl -t ==="     && apache2ctl -t 2>&1 || true
+ && apache2ctl -M | grep -E 'mpm_|rewrite_module'
 
 COPY . /var/www/html/
 
