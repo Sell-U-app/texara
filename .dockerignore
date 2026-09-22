@@ -1,0 +1,9 @@
+.git
+.gitignore
+.gitattributes
+.dockerignore
+Dockerfile
+README.md
+_source-photos/
+storage/*.csv
+storage/*.log

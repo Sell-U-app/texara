@@ -1,0 +1,9 @@
+# Leads are runtime data, never source
+storage/*.csv
+storage/*.log
+
+# Untouched originals, not deployed
+_source-photos/
+
+.DS_Store
+Thumbs.db

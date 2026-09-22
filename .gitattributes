@@ -1,0 +1,4 @@
+* text=auto
+# The container entrypoint must keep LF or the shebang breaks
+*.sh text eol=lf
+docker/entrypoint.sh text eol=lf
