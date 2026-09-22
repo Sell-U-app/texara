@@ -30,6 +30,13 @@ RUN test "$(ls -1 /etc/apache2/mods-enabled/mpm_*.load | wc -l)" = "1" \
  && apache2ctl -t \
  && apache2ctl -M | grep -q 'rewrite_module'
 
+# --- diagnóstico temporal: de dónde sale el segundo MPM ---
+RUN echo "=== BUILD: apache2 -v ==="        && apache2 -v; \
+    echo "=== BUILD: compilados (-l) ==="   && apache2 -l; \
+    echo "=== BUILD: mods-enabled ==="      && ls -1 /etc/apache2/mods-enabled/; \
+    echo "=== BUILD: LoadModule mpm ==="    && grep -rn "LoadModule.*mpm" /etc/apache2/ || true; \
+    echo "=== BUILD: apache2ctl -t ==="     && apache2ctl -t 2>&1 || true
+
 COPY . /var/www/html/
 
 # send.php appends every lead here.
