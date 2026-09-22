@@ -1,0 +1,4 @@
+# Served only on the temporary Railway domain - see .htaccess.
+# The real robots.txt (the one texara.co gets) lives next to this file.
+User-agent: *
+Disallow: /

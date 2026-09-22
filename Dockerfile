@@ -11,7 +11,7 @@ FROM php:8.3-apache
 RUN rm -f /etc/apache2/mods-enabled/mpm_*.load /etc/apache2/mods-enabled/mpm_*.conf \
  && ln -s ../mods-available/mpm_prefork.load /etc/apache2/mods-enabled/mpm_prefork.load \
  && ln -s ../mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf \
- && a2enmod rewrite expires deflate headers
+ && a2enmod rewrite expires deflate headers setenvif
 
 # The container has no MTA, so PHP's mail() has nothing to hand the message to.
 # msmtp-mta provides /usr/sbin/sendmail, which is exactly what mail() shells out

@@ -153,3 +153,13 @@ real photos are in.
 
 Other natural photo slots for later: the capabilities cards and a band between Process and
 Why Colombia.
+
+### Staging vs. texara.co
+
+While the site lives on the Railway URL it must not be indexed - the copy and the
+photos are still placeholders. Both guards are scoped to `*.up.railway.app` in
+`.htaccess`, so `texara.co` is untouched and nothing has to be undone at launch:
+
+- `robots.txt` is rewritten to `robots-staging.txt` (`Disallow: /`).
+- `X-Robots-Tag: noindex, nofollow` is sent, which is what actually keeps the URL
+  out of the index when robots.txt alone would not.
