@@ -58,16 +58,35 @@ site behaves exactly as it does on cPanel - `.htaccess` included.
 3. Settings -> Networking -> Generate Domain (or point `texara.co` there with the
    CNAME Railway gives you).
 
-Two things behave differently than on shared hosting:
+### Mail
 
-- **`mail()` does not work.** The container has no MTA, so the RFQ notification is
-  never delivered. The form still answers with `thanks.php` and the lead is still
-  written to `storage/leads.csv`. Wiring an SMTP transport (Resend, Brevo, SES) is
-  the fix.
-- **`storage/` is wiped on every redeploy.** Attach a Railway volume mounted at
-  `/var/www/html/storage` so `leads.csv` survives.
+The container has no MTA of its own, so the image installs `msmtp` and `msmtp-mta`,
+which provides the `/usr/sbin/sendmail` that PHP's `mail()` shells out to. `send.php`
+is unchanged and stays portable to cPanel. Set these on the Railway service:
 
-Until at least one of those two is in place, treat the form as unmonitored.
+| Variable | Example | |
+|---|---|---|
+| `SMTP_HOST` | `smtp.resend.com` | required |
+| `SMTP_USER` | `resend` | required |
+| `SMTP_PASS` | the provider's API key / password | required |
+| `SMTP_PORT` | `587` | optional - 587 by default; `465` switches to implicit TLS |
+| `MAIL_FROM` | `no-reply@texara.co` | envelope sender; must be a domain the provider lets you send from |
+| `MAIL_TO` | `hello@texara.co` | inbox that receives the RFQs |
+
+With none of them set the site still boots and the form still answers - the log
+says loudly that notifications are off, and every lead goes to the CSV.
+
+Whatever provider is used, `MAIL_FROM` has to be on a domain that is verified
+there (SPF/DKIM), or the mail gets dropped or spam-filed.
+
+### Storage
+
+A Railway volume is mounted at `/var/www/html/storage` so `leads.csv` survives
+redeploys. The mount arrives empty and owned by root, which would both hide the
+image's `storage/.htaccess` and leave Apache unable to write, so the entrypoint
+fixes the ownership and restores that file on every boot.
+
+To read the leads: `railway volume files list /` (or `railway volume browse /`).
 
 ## Local preview
 

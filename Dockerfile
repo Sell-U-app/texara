@@ -13,6 +13,13 @@ RUN rm -f /etc/apache2/mods-enabled/mpm_*.load /etc/apache2/mods-enabled/mpm_*.c
  && ln -s ../mods-available/mpm_prefork.conf /etc/apache2/mods-enabled/mpm_prefork.conf \
  && a2enmod rewrite expires deflate headers
 
+# The container has no MTA, so PHP's mail() has nothing to hand the message to.
+# msmtp-mta provides /usr/sbin/sendmail, which is exactly what mail() shells out
+# to - so send.php keeps working unchanged and stays portable to cPanel.
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends msmtp msmtp-mta ca-certificates \
+ && rm -rf /var/lib/apt/lists/*
+
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
 # Debian's apache2.conf ships AllowOverride None, which would silently ignore
@@ -33,11 +40,13 @@ RUN printf '%s\n' \
 RUN echo "MPMs enabled:" && ls -1 /etc/apache2/mods-enabled/mpm_*.load \
  && test "$(ls -1 /etc/apache2/mods-enabled/mpm_*.load | wc -l)" = "1" \
  && apache2ctl -t \
- && apache2ctl -M | grep -E 'mpm_|rewrite_module'
+ && apache2ctl -M | grep -E 'mpm_|rewrite_module' \
+ && test -e /usr/sbin/sendmail
 
 COPY . /var/www/html/
 
-# send.php appends every lead here.
+# send.php appends every lead here. On Railway this path is a mounted volume,
+# so the entrypoint - not this layer - is what guarantees the permissions.
 RUN mkdir -p /var/www/html/storage \
  && chown -R www-data:www-data /var/www/html/storage
 

@@ -67,6 +67,10 @@ if ($fh = @fopen($csv, 'a')) {
     }
     fputcsv($fh, [$when, $name, $company, $email, $phone, $line, $volume, $plan, $message, $ip]);
     fclose($fh);
+} else {
+    // The CSV is the safety net under mail(). Losing it silently is how leads
+    // disappear for weeks, so it goes to the server log.
+    error_log('texara: FAILED to write the lead to ' . $csv . ' - check that the volume is mounted and writable by www-data');
 }
 
 // ---- Notification -----------------------------------------------------
@@ -92,7 +96,14 @@ $headers = implode("\r\n", [
     'X-Mailer: PHP/' . phpversion(),
 ]);
 
-@mail($CFG['mail']['to'], $CFG['mail']['subject'] . ' - ' . $company, $body, $headers, '-f' . $CFG['mail']['from']);
+$sent = @mail($CFG['mail']['to'], $CFG['mail']['subject'] . ' - ' . $company, $body, $headers, '-f' . $CFG['mail']['from']);
+
+if ($sent) {
+    error_log('texara: RFQ notification accepted by the MTA for ' . $CFG['mail']['to']);
+} else {
+    // Not fatal - the lead is already in the CSV - but it must not be silent.
+    error_log('texara: mail() FAILED for ' . $CFG['mail']['to'] . ' - the lead from ' . $email . ' is only in ' . $csv);
+}
 
 header('Location: thanks.php', true, 303);
 exit;

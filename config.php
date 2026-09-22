@@ -26,13 +26,15 @@ return [
         ],
     ],
 
-    // Where the contact form is delivered
+    // Where the contact form is delivered.
+    // On Railway these come from environment variables, so no address or path has
+    // to be committed; the literals below are the cPanel fallback.
     'mail' => [
-        'to'          => 'hello@texara.co',
+        'to'          => getenv('MAIL_TO')   ?: 'hello@texara.co',
         // Must be an address of THIS domain or shared hosting will drop the mail
-        'from'        => 'no-reply@texara.co',
+        'from'        => getenv('MAIL_FROM') ?: 'no-reply@texara.co',
         'subject'     => 'New RFQ from texara.co',
-        'log_csv'     => __DIR__ . '/storage/leads.csv',
+        'log_csv'     => getenv('LEADS_CSV') ?: __DIR__ . '/storage/leads.csv',
     ],
 
     // ---------------------------------------------------------------
